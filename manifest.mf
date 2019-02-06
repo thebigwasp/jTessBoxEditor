@@ -1,3 +1,14 @@
 Manifest-Version: 1.0
+Class-Path: lib/commons-io-2.6.jar
+    lib/jai-imageio-core-1.4.0.jar
+    lib/jna-5.0.0.jar
+    lib/jul-to-slf4j-1.7.25.jar
+    lib/lept4j-1.10.0.jar
+    lib/log4j-1.2.17.jar
+    lib/log4j-over-slf4j-1.7.25.jar
+    lib/logback-classic-1.2.3.jar
+    lib/logback-core-1.2.3.jar
+    lib/slf4j-api-1.7.25.jar
+    lib/tess4j-4.3.0.jar
 X-COMMENT: Main-Class will be added automatically by build
 

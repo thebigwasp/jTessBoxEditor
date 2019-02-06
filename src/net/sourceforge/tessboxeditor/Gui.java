@@ -816,7 +816,6 @@ public class Gui extends javax.swing.JFrame {
                         if (jTable.getSelectedRows().length == 1) {
                             enableReadout(true);
                             // update Character field
-                            System.out.println((String) tableModel.getValueAt(selectedIndex, 0));
                             jTextFieldCharacter.setText((String) tableModel.getValueAt(selectedIndex, 0));
                             jTextFieldChar.setText(jTextFieldCharacter.getText());
                             jTextFieldCodepointValue.setText(net.sourceforge.vietocr.util.Utils.toHex(jTextFieldCharacter.getText()));
@@ -861,6 +860,10 @@ public class Gui extends javax.swing.JFrame {
         dtcr.setHorizontalAlignment(DefaultTableCellRenderer.CENTER);
         ((JLabel) jTable.getTableHeader().getDefaultRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
         ((JImageLabel) this.jLabelImage).setTable(jTable);
+        ((JImageLabel) this.jLabelImage).setjSpinnerX(jSpinnerX);
+        ((JImageLabel) this.jLabelImage).setjSpinnerY(jSpinnerY);
+        ((JImageLabel) this.jLabelImage).setjSpinnerH(jSpinnerH);
+        ((JImageLabel) this.jLabelImage).setjSpinnerW(jSpinnerW);
         jTable.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke("control C"), "none");
         jTable.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke("control X"), "none");
         jTable.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke("control V"), "none");
@@ -1406,6 +1409,13 @@ public class Gui extends javax.swing.JFrame {
         jMenuBar.add(jMenuHelp);
 
         setJMenuBar(jMenuBar);
+//        this.addKeyListener(new KeyAdapter() {
+//        	@Override
+//			public void keyPressed(KeyEvent e) {
+//        		System.out.println("key pressed");
+//				e.consume();
+//			}
+//        });
 
         KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
         manager.addKeyEventDispatcher(new KeyEventDispatcher() {
