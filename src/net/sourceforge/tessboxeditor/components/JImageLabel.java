@@ -46,6 +46,7 @@ public class JImageLabel extends JLabel {
     private boolean isResizingBox = false;
     
     private boolean isMovingViewportView = false;
+    private Point startDraggingPoint;
 
     private Cursor openhand;
     private Cursor closedhand;
@@ -99,6 +100,7 @@ public class JImageLabel extends JLabel {
             	if (me.getButton() == MouseEvent.BUTTON3) {
             		setCursor(closedhand);
             		isMovingViewportView = true;
+            		startDraggingPoint = me.getPoint();
             		return;
     			}
             	
@@ -142,24 +144,31 @@ public class JImageLabel extends JLabel {
             
             @Override
             public void mouseDragged(MouseEvent e) {
+            	if (isMovingViewportView) {
+            		Rectangle visibleRect = getVisibleRect();
+            		int deltaX = startDraggingPoint.x - e.getPoint().x;
+            		int deltaY = startDraggingPoint.y - e.getPoint().y;
+            		visibleRect.x += deltaX;
+            		visibleRect.y += deltaY;
+            		scrollRectToVisible(visibleRect);
+            		return;
+            	}
+            	
             	if (!isResizingBox) {
             		return;
             	}
             	
             	Rectangle rect = selectedBox.getRect();
-            	int resizePixels = 0;
             	if (resizableLeftBound) {
-            		resizePixels = rect.x - e.getPoint().x;
-            		selectedBox.setRect(new Rectangle(e.getPoint().x, rect.y, rect.width + resizePixels, rect.height));
+            		rect.width += rect.x - e.getPoint().x;
+            		rect.x = e.getPoint().x;
             	} else if (resizableRightBound) {
-            		resizePixels = rect.x + rect.width - e.getPoint().x;
-            		selectedBox.setRect(new Rectangle(rect.x, rect.y, rect.width - resizePixels, rect.height));
+            		rect.width -= rect.x + rect.width - e.getPoint().x;
             	} else if (resizableTopBound) {
-            		resizePixels = rect.y - e.getPoint().y;
-            		selectedBox.setRect(new Rectangle(rect.x, e.getPoint().y, rect.width, rect.height + resizePixels));
+            		rect.height += rect.y - e.getPoint().y;
+            		rect.y = e.getPoint().y;
             	} else {
-            		resizePixels = rect.y + rect.height - e.getPoint().y;
-            		selectedBox.setRect(new Rectangle(rect.x, rect.y, rect.width, rect.height - resizePixels));
+            		rect.height -= rect.y + rect.height - e.getPoint().y;
             	}
 				jSpinnerX.setValue(rect.x);
 				jSpinnerY.setValue(rect.y);
@@ -170,9 +179,9 @@ public class JImageLabel extends JLabel {
             
             @Override
             public void mouseReleased(MouseEvent e) {
-                if (isResizingBox) {
-                	isResizingBox = false;
-                }
+            	setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+            	isMovingViewportView = false;
+            	isResizingBox = false;
             }
     	};
     	
