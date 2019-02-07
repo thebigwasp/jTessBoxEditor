@@ -1,5 +1,5 @@
 /**
- * Copyright @ 2019 Mukha Dzmitry
+ * Copyright @ 2019 Dzmitry Mukha
  * Copyright @ 2011 Quan Nguyen
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -653,10 +653,10 @@ public class Gui extends javax.swing.JFrame {
         jLabelCharacter.setText("Character");
         jPanelSpinner.add(jLabelCharacter);
 
-        jTextFieldCharacter.setColumns(40);
+        jTextFieldCharacter.setColumns(60);
         jTextFieldCharacter.setEnabled(false);
         jTextFieldCharacter.setMargin(new java.awt.Insets(0, 2, 0, 2));
-        jTextFieldCharacter.setPreferredSize(new java.awt.Dimension(400, 24));
+        jTextFieldCharacter.setPreferredSize(new java.awt.Dimension(600, 24));
         jTextFieldCharacter.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jTextFieldCharacterActionPerformed(evt);
@@ -805,8 +805,9 @@ public class Gui extends javax.swing.JFrame {
                             boxes.deselectAll();
                         }
                         List<TessBox> boxesOfCurPage = boxes.toList(); // boxes of current page
+                        TessBox box = null;
                         for (int index : jTable.getSelectedRows()) {
-                            TessBox box = boxesOfCurPage.get(index);
+                            box = boxesOfCurPage.get(index);
                             // select box
                             box.setSelected(true);
                             jLabelImage.scrollRectToVisible(box.getRect());
@@ -816,7 +817,8 @@ public class Gui extends javax.swing.JFrame {
                         if (jTable.getSelectedRows().length == 1) {
                             enableReadout(true);
                             // update Character field
-                            jTextFieldCharacter.setText((String) tableModel.getValueAt(selectedIndex, 0));
+//                            jTextFieldCharacter.setText((String) tableModel.getValueAt(selectedIndex, 0));
+                            jTextFieldCharacter.setText(box.getChrs());
                             jTextFieldChar.setText(jTextFieldCharacter.getText());
                             jTextFieldCodepointValue.setText(net.sourceforge.vietocr.util.Utils.toHex(jTextFieldCharacter.getText()));
                             // update subimage label
@@ -2339,11 +2341,39 @@ public class Gui extends javax.swing.JFrame {
     }//GEN-LAST:event_jSpinnerScaleStateChanged
 
     private void jTextFieldCharacterKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jTextFieldCharacterKeyReleased
+        if (boxes == null) {
+            return;
+        }
+        List<TessBox> selected = this.boxes.getSelectedBoxes();
+        if (selected.size() <= 0) {
+            return;
+        } else if (selected.size() > 1) {
+            JOptionPane.showMessageDialog(this, "Please select only one box to apply the change.");
+            return;
+        }
+
+        int initialCaretPosition = jTextFieldCharacter.getCaretPosition();
+        
+        TessBox box = selected.get(0);
+        int index = this.boxes.toList().indexOf(box);
+        // Convert NCR or escape sequence to Unicode.
+//        this.jTextFieldCharacter.setText(TextUtilities.convertNCR(this.jTextFieldCharacter.getText()));
+        String str = this.jTextFieldCharacter.getText();
+        if (!box.getChrs().equals(str)) {
+        	System.out.println("abc");
+            box.setChrs(str);
+            tableModel.setValueAt(box.getChrs(), index, 0);
+            jTextFieldChar.setText(str);
+            jTextFieldCodepointValue.setText(Utils.toHex(str));
+            jTextFieldCharacter.setCaretPosition(initialCaretPosition);
+            updateSave(true);
+        }
+    	
         if (evt.getKeyCode() == KeyEvent.VK_ESCAPE || evt.getKeyCode() == KeyEvent.VK_ENTER) {
             jLabelSubimage.requestFocus();
         }
     }//GEN-LAST:event_jTextFieldCharacterKeyReleased
-
+    
     void jButtonBrowseOutputDirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonBrowseOutputDirActionPerformed
         JOptionPane.showMessageDialog(this, TO_BE_IMPLEMENTED);
     }//GEN-LAST:event_jButtonBrowseOutputDirActionPerformed

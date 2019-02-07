@@ -1,5 +1,5 @@
 /**
- * Copyright @ 2019 Mukha Dzmitry
+ * Copyright @ 2019 Dzmitry Mukha
  * Copyright @ 2011 Quan Nguyen
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -211,7 +211,6 @@ public class JImageLabel extends JLabel {
             }
             Rectangle rect = box.getRect();
             
-            ResizableRectangle r = new ResizableRectangle();
             g2d.draw(rect);
 //            g2d.drawRect(rect.x, height - rect.y - rect.height, rect.width, rect.height);
             if (resetColor) {
