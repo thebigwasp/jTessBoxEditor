@@ -1,4 +1,5 @@
 /**
+ * Copyright @ 2019 Dzmitry Mukha
  * Copyright @ 2011 Quan Nguyen
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -81,6 +82,7 @@ public class Gui extends javax.swing.JFrame {
     private boolean isTess2_0Format;
     protected RowHeaderList rowHeader;
     protected Font font;
+    protected boolean usingWordStrFormat = false;
 
     protected static int iconMargin = 3;
     protected static boolean invertControls = false;
@@ -237,7 +239,7 @@ public class Gui extends javax.swing.JFrame {
         jPanelSpinner = new javax.swing.JPanel();
         jLabelCharacter = new javax.swing.JLabel();
         jTextFieldCharacter = new javax.swing.JTextField();
-        jTextFieldCharacter.setDocument(new LimitedLengthDocument(12));
+        jTextFieldCharacter.setDocument(new LimitedLengthDocument(1000));
         jButtonConvert = new javax.swing.JButton();
         jLabelX = new javax.swing.JLabel();
         jSpinnerX = new javax.swing.JSpinner();
@@ -651,10 +653,10 @@ public class Gui extends javax.swing.JFrame {
         jLabelCharacter.setText("Character");
         jPanelSpinner.add(jLabelCharacter);
 
-        jTextFieldCharacter.setColumns(4);
+        jTextFieldCharacter.setColumns(60);
         jTextFieldCharacter.setEnabled(false);
         jTextFieldCharacter.setMargin(new java.awt.Insets(0, 2, 0, 2));
-        jTextFieldCharacter.setPreferredSize(new java.awt.Dimension(40, 24));
+        jTextFieldCharacter.setPreferredSize(new java.awt.Dimension(600, 24));
         jTextFieldCharacter.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jTextFieldCharacterActionPerformed(evt);
@@ -803,8 +805,9 @@ public class Gui extends javax.swing.JFrame {
                             boxes.deselectAll();
                         }
                         List<TessBox> boxesOfCurPage = boxes.toList(); // boxes of current page
+                        TessBox box = null;
                         for (int index : jTable.getSelectedRows()) {
-                            TessBox box = boxesOfCurPage.get(index);
+                            box = boxesOfCurPage.get(index);
                             // select box
                             box.setSelected(true);
                             jLabelImage.scrollRectToVisible(box.getRect());
@@ -814,7 +817,8 @@ public class Gui extends javax.swing.JFrame {
                         if (jTable.getSelectedRows().length == 1) {
                             enableReadout(true);
                             // update Character field
-                            jTextFieldCharacter.setText((String) tableModel.getValueAt(selectedIndex, 0));
+//                            jTextFieldCharacter.setText((String) tableModel.getValueAt(selectedIndex, 0));
+                            jTextFieldCharacter.setText(box.getChrs());
                             jTextFieldChar.setText(jTextFieldCharacter.getText());
                             jTextFieldCodepointValue.setText(net.sourceforge.vietocr.util.Utils.toHex(jTextFieldCharacter.getText()));
                             // update subimage label
@@ -858,6 +862,10 @@ public class Gui extends javax.swing.JFrame {
         dtcr.setHorizontalAlignment(DefaultTableCellRenderer.CENTER);
         ((JLabel) jTable.getTableHeader().getDefaultRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
         ((JImageLabel) this.jLabelImage).setTable(jTable);
+        ((JImageLabel) this.jLabelImage).setjSpinnerX(jSpinnerX);
+        ((JImageLabel) this.jLabelImage).setjSpinnerY(jSpinnerY);
+        ((JImageLabel) this.jLabelImage).setjSpinnerH(jSpinnerH);
+        ((JImageLabel) this.jLabelImage).setjSpinnerW(jSpinnerW);
         jTable.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke("control C"), "none");
         jTable.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke("control X"), "none");
         jTable.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke("control V"), "none");
@@ -1403,6 +1411,13 @@ public class Gui extends javax.swing.JFrame {
         jMenuBar.add(jMenuHelp);
 
         setJMenuBar(jMenuBar);
+//        this.addKeyListener(new KeyAdapter() {
+//        	@Override
+//			public void keyPressed(KeyEvent e) {
+//        		System.out.println("key pressed");
+//				e.consume();
+//			}
+//        });
 
         KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
         manager.addKeyEventDispatcher(new KeyEventDispatcher() {
@@ -1603,15 +1618,26 @@ public class Gui extends javax.swing.JFrame {
     }
 
     List<TessBoxCollection> parseBoxString(String boxStr, List<BufferedImage> imageList) throws IOException {
-        List<TessBoxCollection> allBoxPages = new ArrayList<TessBoxCollection>();
-        
-        String[] boxdata = boxStr.split("\\R"); // or "\\r?\\n"
+        if (boxStr.substring(0, boxStr.indexOf(" ")).equals("WordStr")) {
+        	this.usingWordStrFormat = true;
+        	return parseWordStrBoxFormat(boxStr, imageList);
+//        	return parseStandardBoxFormat(boxStr, imageList);
+        } else {
+        	this.usingWordStrFormat = false;
+        	return parseStandardBoxFormat(boxStr, imageList);
+        }
+    }
+
+    List<TessBoxCollection> parseStandardBoxFormat(String boxStr, List<BufferedImage> imageList){
+    	List<TessBoxCollection> allBoxPages = new ArrayList<TessBoxCollection>();
+    	
+    	String[] boxdata = boxStr.split("\\R"); // or "\\r?\\n"
         if (boxdata.length > 0) {
             // if only 5 fields, it's Tess 2.0x format
             isTess2_0Format = boxdata[0].split("\\s+").length == 5;
         }
-
-        int startBoxIndex = 0;
+    	
+    	int startBoxIndex = 0;
 
         for (int curPage = 0; curPage < imageList.size(); curPage++) {
             TessBoxCollection boxCol = new TessBoxCollection();
@@ -1650,7 +1676,58 @@ public class Gui extends javax.swing.JFrame {
 
         return allBoxPages;
     }
+    
+    List<TessBoxCollection> parseWordStrBoxFormat(String boxStr, List<BufferedImage> imageList){
+    	List<TessBoxCollection> allBoxPages = new ArrayList<TessBoxCollection>();
+    	
+    	String[] boxdata = boxStr.split("\\R"); // or "\\r?\\n"
+    	
+    	int startBoxIndex = 0;
 
+        for (int curPage = 0; curPage < imageList.size(); curPage++) {
+            TessBoxCollection boxCol = new TessBoxCollection();
+            // Note that the coordinate system used in the box file has (0,0) at the bottom-left.
+            // On computer graphics device, (0,0) is defined as top-left.
+            int pageHeight = imageList.get(curPage).getHeight();
+            for (int i = startBoxIndex; i < boxdata.length; i++) {
+            	
+            	String[] parts = boxdata[i].split("#");
+            	if (parts.length == 1) {
+            		continue; // skip line delimiters
+            	}
+            	
+                String[] items = parts[0].split("(?<!^) +");
+
+                // skip invalid data
+                if (items.length < 5 || items.length > 6) {
+                    continue;
+                }
+
+                String chrs = parts[1];
+                int x = Integer.parseInt(items[1]);
+                int y = Integer.parseInt(items[2]);
+                int w = Integer.parseInt(items[3]) - x;
+                int h = Integer.parseInt(items[4]) - y;
+                y = pageHeight - y - h; // flip the y-coordinate
+
+                short page = Short.parseShort(items[5]);
+//                if (items.length == 6) {
+//                    page = Short.parseShort(items[5]); // Tess 3.0x format
+//                } else {
+//                    page = 0; // Tess 2.0x format
+//                }
+                if (page > curPage) {
+                    startBoxIndex = i; // mark begin of next page
+                    break;
+                }
+                boxCol.add(new TessBox(chrs, new Rectangle(x, y, w, h), page));
+            }
+            allBoxPages.add(boxCol); // add the last page
+        }
+
+        return allBoxPages;
+    }
+    
     void loadTable() {
         if (!this.boxPages.isEmpty()) {
             boxes = this.boxPages.get(imageIndex);
@@ -1761,6 +1838,14 @@ public class Gui extends javax.swing.JFrame {
     }
 
     String formatOutputString(List<BufferedImage> imgList, List<TessBoxCollection> bxPages) {
+        if (usingWordStrFormat) {
+        	return formatWordStrOutputString(imgList, bxPages);
+        } else {
+        	return formatStandardOutputString(imgList, bxPages);
+        }
+    }
+    
+    String formatStandardOutputString(List<BufferedImage> imgList, List<TessBoxCollection> bxPages) {
         StringBuilder sb = new StringBuilder();
         for (short pageIndex = 0; pageIndex < imgList.size(); pageIndex++) {
             int pageHeight = ((BufferedImage) imgList.get(pageIndex)).getHeight(); // each page (in an image) can have different height
@@ -1771,6 +1856,19 @@ public class Gui extends javax.swing.JFrame {
         }
         if (isTess2_0Format) {
             return sb.toString().replace(" 0" + EOL, EOL); // strip the ending zeroes
+        }
+        return sb.toString();
+    }
+    
+    String formatWordStrOutputString(List<BufferedImage> imgList, List<TessBoxCollection> bxPages) {
+    	StringBuilder sb = new StringBuilder();
+        for (short pageIndex = 0; pageIndex < imgList.size(); pageIndex++) {
+            int pageHeight = ((BufferedImage) imgList.get(pageIndex)).getHeight(); // each page (in an image) can have different height
+            for (TessBox box : bxPages.get(pageIndex).toList()) {
+                Rectangle rect = box.getRect();
+                sb.append(String.format("WordStr %d %d %d %d %d #%s", rect.x, pageHeight - rect.y - rect.height, rect.x + rect.width, pageHeight - rect.y, pageIndex, box.getChrs())).append(EOL);
+                sb.append(String.format("\t %d %d %d %d %d", rect.x + rect.width, pageHeight - rect.y - 1, rect.x + rect.width + 1, pageHeight - rect.y, pageIndex)).append(EOL);
+            }
         }
         return sb.toString();
     }
@@ -2243,11 +2341,39 @@ public class Gui extends javax.swing.JFrame {
     }//GEN-LAST:event_jSpinnerScaleStateChanged
 
     private void jTextFieldCharacterKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jTextFieldCharacterKeyReleased
+        if (boxes == null) {
+            return;
+        }
+        List<TessBox> selected = this.boxes.getSelectedBoxes();
+        if (selected.size() <= 0) {
+            return;
+        } else if (selected.size() > 1) {
+            JOptionPane.showMessageDialog(this, "Please select only one box to apply the change.");
+            return;
+        }
+
+        int initialCaretPosition = jTextFieldCharacter.getCaretPosition();
+        
+        TessBox box = selected.get(0);
+        int index = this.boxes.toList().indexOf(box);
+        // Convert NCR or escape sequence to Unicode.
+//        this.jTextFieldCharacter.setText(TextUtilities.convertNCR(this.jTextFieldCharacter.getText()));
+        String str = this.jTextFieldCharacter.getText();
+        if (!box.getChrs().equals(str)) {
+        	System.out.println("abc");
+            box.setChrs(str);
+            tableModel.setValueAt(box.getChrs(), index, 0);
+            jTextFieldChar.setText(str);
+            jTextFieldCodepointValue.setText(Utils.toHex(str));
+            jTextFieldCharacter.setCaretPosition(initialCaretPosition);
+            updateSave(true);
+        }
+    	
         if (evt.getKeyCode() == KeyEvent.VK_ESCAPE || evt.getKeyCode() == KeyEvent.VK_ENTER) {
             jLabelSubimage.requestFocus();
         }
     }//GEN-LAST:event_jTextFieldCharacterKeyReleased
-
+    
     void jButtonBrowseOutputDirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonBrowseOutputDirActionPerformed
         JOptionPane.showMessageDialog(this, TO_BE_IMPLEMENTED);
     }//GEN-LAST:event_jButtonBrowseOutputDirActionPerformed

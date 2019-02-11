@@ -1,4 +1,5 @@
 /**
+ * Copyright @ 2019 Dzmitry Mukha
  * Copyright @ 2011 Quan Nguyen
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,6 +19,8 @@ package net.sourceforge.tessboxeditor.components;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
+
+import net.sourceforge.tessboxeditor.Gui;
 import net.sourceforge.tessboxeditor.datamodel.*;
 import net.sourceforge.vietocr.util.Utils;
 
@@ -26,15 +29,88 @@ public class JImageLabel extends JLabel {
     private TessBoxCollection boxes;
     private JTable table;
     private boolean boxClickAction;
+    private TessBox selectedBox;
+    
+    private JSpinner jSpinnerX;
+    private JSpinner jSpinnerY;
+    private JSpinner jSpinnerW;
+    private JSpinner jSpinnerH;
+    
+    private boolean resizableLeftBound = false;
+    private boolean resizableRightBound = false;
+    private boolean resizableTopBound = false;
+    private boolean resizableBottomBound = false;
+    
+    private boolean resizableBox = false;
+    
+    private boolean isResizingBox = false;
+    
+    private boolean isMovingViewportView = false;
+    private Point startDraggingPoint;
 
+    private Cursor openhand;
+    private Cursor closedhand;
+    
     /** Creates a new instance of JImageLabel */
     public JImageLabel() {
-        this.addMouseListener(new MouseAdapter() {
-
+    	Toolkit toolkit = Toolkit.getDefaultToolkit();
+    	Image image = toolkit.getImage(getClass().getResource("/net/sourceforge/tessboxeditor/icons/openhand.gif"));
+    	openhand = toolkit.createCustomCursor(image , new Point(0,0), "openhand");
+    	image = toolkit.getImage(getClass().getResource("/net/sourceforge/tessboxeditor/icons/closedhand.gif"));
+    	closedhand = toolkit.createCustomCursor(image , new Point(0,0), "closedhand");
+    	
+    	MouseAdapter mouseAdapter = new MouseAdapter() {
+    		@Override
+            public void mouseMoved(MouseEvent e) {
+    			if (boxes == null || selectedBox == null) {
+                    return;
+                }
+    			
+    			Point p = e.getPoint();
+        		Rectangle rect = selectedBox.getRect();
+        		int leftBound = rect.x;
+        		int rightBound = rect.x + rect.width;
+        		int topBound = rect.y;
+        		int bottomBound = rect.y + rect.height;
+        		resizableBox = true;
+        	    resizableLeftBound = false;
+        	    resizableRightBound = false;
+        	    resizableTopBound = false;
+        	    resizableBottomBound = false;
+            	if (leftBound - 4 < p.x && leftBound + 4 > p.x) {
+            		setCursor(Cursor.getPredefinedCursor(Cursor.W_RESIZE_CURSOR));
+            		resizableLeftBound = true;
+            	} else if (rightBound - 4 < p.x && rightBound + 4 > p.x) {
+            		setCursor(Cursor.getPredefinedCursor(Cursor.E_RESIZE_CURSOR));
+            		resizableRightBound = true;
+            	} else if (topBound - 4 < p.y && topBound + 4 > p.y) {
+            		setCursor(Cursor.getPredefinedCursor(Cursor.N_RESIZE_CURSOR));
+            		resizableTopBound = true;
+            	} else if (bottomBound - 4 < p.y && bottomBound + 4 > p.y) {
+            		setCursor(Cursor.getPredefinedCursor(Cursor.S_RESIZE_CURSOR));
+            		resizableBottomBound = true;
+            	} else {
+            		setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+            		resizableBox = false;
+            	}
+            }
+        	
             @Override
             public void mousePressed(MouseEvent me) {
+            	if (me.getButton() == MouseEvent.BUTTON3) {
+            		setCursor(closedhand);
+            		isMovingViewportView = true;
+            		startDraggingPoint = me.getPoint();
+            		return;
+    			}
+            	
                 if (boxes == null) {
                     return;
+                }
+                
+                if (resizableBox) {
+                	isResizingBox = true;
+                	return;
                 }
 
                 TessBox box = boxes.hitObject(me.getPoint());
@@ -44,11 +120,13 @@ public class JImageLabel extends JLabel {
                         repaint();
                         table.clearSelection();
                     }
+                    selectedBox = null;
                 } else {
                     if (!me.isControlDown()) {
                         boxes.deselectAll();
                         table.clearSelection();
                     }
+                    selectedBox = box;
                     box.setSelected(!box.isSelected()); // toggle selection
                     repaint();
                     // select corresponding table rows
@@ -63,7 +141,52 @@ public class JImageLabel extends JLabel {
                     boxClickAction = false;
                 }
             }
-        });
+            
+            @Override
+            public void mouseDragged(MouseEvent e) {
+            	if (isMovingViewportView) {
+            		Rectangle visibleRect = getVisibleRect();
+            		int deltaX = startDraggingPoint.x - e.getPoint().x;
+            		int deltaY = startDraggingPoint.y - e.getPoint().y;
+            		visibleRect.x += deltaX;
+            		visibleRect.y += deltaY;
+            		scrollRectToVisible(visibleRect);
+            		return;
+            	}
+            	
+            	if (!isResizingBox) {
+            		return;
+            	}
+            	
+            	Rectangle rect = selectedBox.getRect();
+            	if (resizableLeftBound) {
+            		rect.width += rect.x - e.getPoint().x;
+            		rect.x = e.getPoint().x;
+            	} else if (resizableRightBound) {
+            		rect.width -= rect.x + rect.width - e.getPoint().x;
+            	} else if (resizableTopBound) {
+            		rect.height += rect.y - e.getPoint().y;
+            		rect.y = e.getPoint().y;
+            	} else {
+            		rect.height -= rect.y + rect.height - e.getPoint().y;
+            	}
+				jSpinnerX.setValue(rect.x);
+				jSpinnerY.setValue(rect.y);
+				jSpinnerW.setValue(rect.width);
+				jSpinnerH.setValue(rect.height);
+            	repaint();
+            }
+            
+            @Override
+            public void mouseReleased(MouseEvent e) {
+            	setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+            	isMovingViewportView = false;
+            	isResizingBox = false;
+            }
+    	};
+    	
+        this.addMouseListener(mouseAdapter);
+        this.addMouseMotionListener(mouseAdapter);
     }
 
     @Override
@@ -87,6 +210,7 @@ public class JImageLabel extends JLabel {
                 resetColor = true;
             }
             Rectangle rect = box.getRect();
+            
             g2d.draw(rect);
 //            g2d.drawRect(rect.x, height - rect.y - rect.height, rect.width, rect.height);
             if (resetColor) {
@@ -133,4 +257,36 @@ public class JImageLabel extends JLabel {
     public boolean isBoxClickAction() {
         return boxClickAction;
     }
+
+	public final JSpinner getjSpinnerX() {
+		return jSpinnerX;
+	}
+
+	public final void setjSpinnerX(JSpinner jSpinnerX) {
+		this.jSpinnerX = jSpinnerX;
+	}
+
+	public final JSpinner getjSpinnerY() {
+		return jSpinnerY;
+	}
+
+	public final void setjSpinnerY(JSpinner jSpinnerY) {
+		this.jSpinnerY = jSpinnerY;
+	}
+
+	public final JSpinner getjSpinnerW() {
+		return jSpinnerW;
+	}
+
+	public final void setjSpinnerW(JSpinner jSpinnerW) {
+		this.jSpinnerW = jSpinnerW;
+	}
+
+	public final JSpinner getjSpinnerH() {
+		return jSpinnerH;
+	}
+
+	public final void setjSpinnerH(JSpinner jSpinnerH) {
+		this.jSpinnerH = jSpinnerH;
+	}
 }
