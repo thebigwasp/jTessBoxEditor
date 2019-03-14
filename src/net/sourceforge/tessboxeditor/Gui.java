@@ -684,6 +684,7 @@ public class Gui extends javax.swing.JFrame {
         jLabelX.setText("X");
         jPanelSpinner.add(jLabelX);
 
+        jSpinnerX.setModel(new SpinnerNumberModel(0, 0, Integer.MAX_VALUE, 1));
         jSpinnerX.setEditor(new javax.swing.JSpinner.NumberEditor(jSpinnerX, "#"));
         jSpinnerX.setEnabled(false);
         jSpinnerX.setPreferredSize(new java.awt.Dimension(63, 22));
@@ -698,6 +699,7 @@ public class Gui extends javax.swing.JFrame {
         jLabelY.setText("Y");
         jPanelSpinner.add(jLabelY);
 
+        jSpinnerY.setModel(new SpinnerNumberModel(0, 0, Integer.MAX_VALUE, 1));
         jSpinnerY.setEditor(new javax.swing.JSpinner.NumberEditor(jSpinnerY, "#"));
         jSpinnerY.setEnabled(false);
         jSpinnerY.setPreferredSize(new java.awt.Dimension(63, 22));
@@ -712,7 +714,7 @@ public class Gui extends javax.swing.JFrame {
         jLabelW.setText("W");
         jPanelSpinner.add(jLabelW);
 
-        jSpinnerW.setModel(new javax.swing.SpinnerNumberModel());
+        jSpinnerW.setModel(new SpinnerNumberModel(1, 1, Integer.MAX_VALUE, 1));
         jSpinnerW.setEditor(new javax.swing.JSpinner.NumberEditor(jSpinnerW, "#"));
         jSpinnerW.setEnabled(false);
         jSpinnerW.setPreferredSize(new java.awt.Dimension(48, 22));
@@ -727,7 +729,7 @@ public class Gui extends javax.swing.JFrame {
         jLabelH.setText("H");
         jPanelSpinner.add(jLabelH);
 
-        jSpinnerH.setModel(new javax.swing.SpinnerNumberModel());
+        jSpinnerH.setModel(new SpinnerNumberModel(1, 1, Integer.MAX_VALUE, 1));
         jSpinnerH.setEditor(new javax.swing.JSpinner.NumberEditor(jSpinnerH, "#"));
         jSpinnerH.setEnabled(false);
         jSpinnerH.setPreferredSize(new java.awt.Dimension(48, 22));
@@ -1691,7 +1693,10 @@ public class Gui extends javax.swing.JFrame {
             int pageHeight = imageList.get(curPage).getHeight();
             for (int i = startBoxIndex; i < boxdata.length; i++) {
             	
-            	String[] parts = boxdata[i].split("#");
+            	String[] parts = new String[2];
+            	int sharpIndex = boxdata[i].indexOf("#");
+            	parts[0] = boxdata[i].substring(0, sharpIndex);
+            	parts[1] = boxdata[i].substring(sharpIndex + 1, boxdata[i].length());
             	if (parts.length == 1) {
             		continue; // skip line delimiters
             	}
